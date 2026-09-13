@@ -1,0 +1,16 @@
+from .station import router as station_router
+from .sensors import router as sensors_router
+from .weather import router as weather_router
+from .forecast import router as forecast_router
+from .autonomy import router as autonomy_router
+from .optimization import router as optimization_router
+from .safety import router as safety_router
+from .resupply import router as resupply_router
+from .scenarios import router as scenarios_router
+from .alerts import router as alerts_router
+from .events import router as events_router
+from .system import router as system_router
+from .connectivity import router as connectivity_router
+from .data import router as data_router
+from .actions import router as actions_router
+from .models import router as models_router

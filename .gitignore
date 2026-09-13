@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Data
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Misc
+server.log
+*.log
+sc.json
+opt.json
+o2.json
+o3.json
+o4.json
+sw.json
+n.json
+s4.json
+s5.json
+.freebuff/

@@ -1,0 +1,32 @@
+services:
+  backend:
+    build: ./backend
+    container_name: polems-backend
+    ports:
+      - "8321:8321"
+    volumes:
+      - polems-data:/app/data
+    environment:
+      - POLAR_EMS_DATA=/app/data
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: polems-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: polems-mqtt
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./deploy/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+volumes:
+  polems-data:
