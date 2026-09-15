@@ -19,31 +19,44 @@ import { HistoryPage } from './pages/history'
 import { SystemPage } from './pages/system'
 import { SettingsPage } from './pages/settings'
 
-const NAV = [
-  { section: 'Operations' },
-  { id: 'overview', label: 'Overview' },
-  { id: 'live', label: 'Live State' },
-
-  { section: 'Decision' },
-  { id: 'optimization', label: 'Operating Plan' },
-  { id: 'forecast', label: 'Forecast & Uncertainty' },
-  { id: 'autonomy', label: 'Safe Operability & CQRM' },
-  { id: 'scenarios', label: 'Scenarios & Stress Demo' },
-  { id: 'baseline', label: 'Baseline Comparison' },
-
-  { section: 'Control' },
-  { id: 'safety', label: 'Safety Validation Gate' },
-  { id: 'resupply', label: 'Resupply Logistics' },
-
-  { section: 'System' },
-  { id: 'alerts', label: 'Alerts' },
-  { id: 'data', label: 'Data Diagnostics' },
-  { id: 'history', label: 'Action Audit' },
-  { id: 'system', label: 'System Health' },
-  { id: 'settings', label: 'Settings' },
+const NAV_GROUPS = [
+  {
+    section: 'OPERATIONS',
+    items: [
+      { id: 'overview', label: 'Overview' },
+      { id: 'live', label: 'Live State' },
+    ],
+  },
+  {
+    section: 'DECISION',
+    items: [
+      { id: 'optimization', label: 'Operating Plan' },
+      { id: 'forecast', label: 'Forecast & Uncertainty' },
+      { id: 'autonomy', label: 'Safe Operability & CQRM' },
+      { id: 'scenarios', label: 'Scenarios & Stress Demo' },
+      { id: 'baseline', label: 'Baseline Comparison' },
+    ],
+  },
+  {
+    section: 'CONTROL',
+    items: [
+      { id: 'safety', label: 'Safety Validation Gate' },
+      { id: 'resupply', label: 'Resupply Logistics' },
+    ],
+  },
+  {
+    section: 'SYSTEM',
+    items: [
+      { id: 'alerts', label: 'Alerts' },
+      { id: 'data', label: 'Data Diagnostics' },
+      { id: 'history', label: 'Action Audit' },
+      { id: 'system', label: 'System Health' },
+      { id: 'settings', label: 'Settings' },
+    ],
+  },
 ] as const
 
-export type PageId = typeof NAV[number] extends { id: infer I } ? I : never
+export type PageId = typeof NAV_GROUPS[number]['items'][number]['id']
 
 export const App: React.FC = () => {
   const { station, connected, refresh } = useStore()
@@ -56,6 +69,40 @@ export const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('polar_ems_page', page)
   }, [page])
+
+  // Collapsible groups state with localStorage persistence
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('polar_ems_nav_collapsed')
+      const initial: Record<string, boolean> = saved ? JSON.parse(saved) : {}
+      const curPage = localStorage.getItem('polar_ems_page') || 'overview'
+      const activeGroup = NAV_GROUPS.find(g => g.items.some(item => item.id === curPage))
+      if (activeGroup) {
+        initial[activeGroup.section] = false
+      }
+      return initial
+    } catch {
+      return {}
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('polar_ems_nav_collapsed', JSON.stringify(collapsed))
+    } catch {}
+  }, [collapsed])
+
+  // Keep/open the group containing the active page so it remains visible
+  useEffect(() => {
+    const activeGroup = NAV_GROUPS.find(g => g.items.some(item => item.id === page))
+    if (activeGroup && collapsed[activeGroup.section]) {
+      setCollapsed(prev => ({ ...prev, [activeGroup.section]: false }))
+    }
+  }, [page])
+
+  const toggleGroup = (section: string) => {
+    setCollapsed(prev => ({ ...prev, [section]: !prev[section] }))
+  }
 
   // Restore delay state from localStorage on first mount if present
   useEffect(() => {
@@ -100,19 +147,48 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        {NAV.map(item =>
-          'section' in item ? (
-            <div className="nav-section" key={item.section}>{item.section}</div>
-          ) : (
-            <a
-              key={item.id}
-              className={`nav-item ${page === item.id ? 'active' : ''}`}
-              onClick={() => setPage(item.id)}
-            >
-              {item.label}
-            </a>
-          ),
-        )}
+        {NAV_GROUPS.map(group => {
+          const isCollapsed = !!collapsed[group.section]
+          return (
+            <div key={group.section} className="nav-group">
+              <button
+                type="button"
+                className={`nav-section ${isCollapsed ? 'collapsed' : 'expanded'}`}
+                aria-expanded={!isCollapsed}
+                onClick={() => toggleGroup(group.section)}
+              >
+                <span>{group.section}</span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="nav-chevron"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <div className={`nav-group-items ${isCollapsed ? 'collapsed' : 'expanded'}`}>
+                <div className="nav-group-items-inner">
+                  {group.items.map(item => (
+                    <a
+                      key={item.id}
+                      className={`nav-item ${page === item.id ? 'active' : ''}`}
+                      onClick={() => setPage(item.id)}
+                    >
+                      {item.label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </aside>
 
       <main className="main">
