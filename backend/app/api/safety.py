@@ -15,6 +15,7 @@ def rules() -> dict:
 
 
 @router.get("/latest")
+@router.post("/validate")
 def latest() -> dict:
     return STATE.safety_result or {"passed": True, "checks": []}
 

@@ -18,6 +18,41 @@ export const get = <T,>(path: string) => req<T>(path)
 export const post = <T,>(path: string, body?: unknown) =>
   req<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined })
 
+export interface ScenarioV1Response {
+  scenario: string
+  safe_operability_days: number
+  cqrm_days: number
+  risk_level: 'SAFE' | 'CAUTION' | 'CONSERVE' | 'CRITICAL' | string
+  required_reserve_soc_pct: number
+  optimizer_status: string
+  safety_status: 'SAFE' | 'UNSAFE' | string
+  final_decision: 'ACCEPT_PLAN' | 'REJECT_PLAN' | string
+  operating_mode: 'NORMAL' | 'CONSERVATION' | string
+  operator_intervention_required: boolean
+  resupply_p10_days: number
+  resupply_p50_days: number
+  resupply_p90_days: number
+  resupply_margin_days: number
+  recommended_action: string
+  reason: string
+  violations: any[]
+  initial_battery_soc_pct?: number
+  final_battery_soc_pct?: number
+  initial_fuel_l?: number
+  final_fuel_l?: number
+  fuel_used_l?: number
+  generator_energy_kwh?: number
+  renewable_used_kwh?: number
+  renewable_curtailed_kwh?: number
+  battery_discharge_kwh?: number
+  battery_charge_kwh?: number
+  first_violation?: { timestamp: string; violations: string[] }
+  hourly_plan?: any[]
+}
+
+export const runScenarioV1 = (scenario: string, delayDays: number = 0.0) =>
+  post<ScenarioV1Response>('/v1/scenario/run', { scenario, delay_days: delayDays })
+
 // ---------------------------------------------------------------- types ----
 export interface ResupplyDailyProb {
   day: number

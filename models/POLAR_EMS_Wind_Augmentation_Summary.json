@@ -1,0 +1,31 @@
+{
+  "decision": "NO MATERIAL BENEFIT",
+  "best_synthetic_ratio": 0.0,
+  "real_only_test": {
+    "MAE": 152.78234520795888,
+    "RMSE": 246.75555878988294,
+    "R2": 0.9681890871045357
+  },
+  "best_augmented_test": {
+    "MAE": 152.78234520795888,
+    "RMSE": 246.75555878988294,
+    "R2": 0.9681890871045357
+  },
+  "improvement": {
+    "MAE_percent": 0.0,
+    "RMSE_percent": 0.0,
+    "R2_change": 0.0
+  },
+  "best_regime": "Calm (<3)",
+  "best_regime_improvement_percent": 0.0,
+  "worst_regime": "Calm (<3)",
+  "worst_regime_improvement_percent": 0.0,
+  "data": {
+    "real_train": 35371,
+    "real_validation": 7579,
+    "real_test": 7580,
+    "synthetic": 10000
+  },
+  "seed": 42,
+  "xgboost_version": "3.4.1"
+}

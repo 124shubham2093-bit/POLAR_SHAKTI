@@ -105,29 +105,62 @@ autonomy methodology, database schema and Electron-packaging plan.
 ## API structure
 
 ```
-/api/station          live shared-state snapshot
-/api/sensors          readings, quality, MQTT health, REST ingest
-/api/weather          current, history, weather→impact translation
-/api/forecast         forecasts, model info, retrain, update simulation
-/api/autonomy         safe autonomy + methodology
-/api/optimization     run/approve/reject + latest recommendation
-/api/safety           rules + latest validation
-/api/resupply         configure resupply, required-horizon gap
-/api/scenarios        activate scenarios, demo start/stop
-/api/alerts           list/acknowledge
-/api/events           persisted system event log
-/api/system           engine health
-/api/connectivity     internet loss/restore simulation, sync queue
-/api/data             readings/forecasts/schedules/actions for data page
-/api/actions          operator actions (all audited)
-/api/models           model management
+/health                       health check and loaded ML model summary
+/api/v1/scenario/run          canonical resupply-conditioned scenario runner
+/api/v1/scenario/list         list supported stress scenarios
+/api/station                  live shared-state snapshot
+/api/sensors                  readings, quality, MQTT health, REST ingest
+/api/weather                  current, history, weather→impact translation
+/api/forecast                 forecasts, model info, retrain, update simulation
+/api/autonomy                 safe autonomy + methodology
+/api/optimization             run/approve/reject + latest recommendation
+/api/safety                   rules + latest validation
+/api/resupply                 configure resupply, required-horizon gap
+/api/scenarios                activate scenarios, demo start/stop
+/api/alerts                   list/acknowledge
+/api/events                   persisted system event log
+/api/system                   engine health
+/api/connectivity             internet loss/restore simulation, sync queue
+/api/data                     readings/forecasts/schedules/actions for data page
+/api/actions                  operator actions (all audited)
+/api/models                   model management
 ```
 
-## Honest scope
+## Resupply-Aware Decision Chain (Validated Pipeline)
 
-- All data is **simulated**, seeded and reproducible; the UI labels it as such everywhere.
-- The forecasting model is a lightweight ridge regression trained **on the station's own
-  simulated history** — metrics (MAE/RMSE) are measured on a time-based hold-out, not invented.
-- The contribution is an **offline-first operational decision-support layer** combining
-  forecasting, constrained optimization, safety validation, autonomy estimation against the
-  resupply horizon, uncertainty-aware reserves and operator decision support.
+```
+Station Telemetry / Scenario State
+        ↓
+Data Validation
+        ↓
+Forecasting (Load 20-feat, Solar 12-feat, Wind 17-feat)
+        ↓
+Uncertainty / Risk Inputs
+        ↓
+Battery State (SOH 8-feat) & SCADA Anomaly (23-feat)
+        ↓
+Resupply Modeling (P10 / P50 / P90)
+        ↓
+Safe Operability (30-day Forward Simulation)
+        ↓
+CQRM (Cumulative Quantile Risk Metric = Safe Operability − P90 Resupply)
+        ↓
+Dynamic Reserve Policy (20% to 85% SOC)
+        ↓
+Optimization (HiGHS LP optimize_station_v3)
+        ↓
+Deterministic Safety Validator (Model-7 Authoritative Hard Constraints)
+        ↓
+Final Operational Decision (ACCEPT_PLAN / REJECT_PLAN)
+        ↓
+Operator UI / Audit Trail
+```
+
+## Honest Scope & Positioning
+
+- Core differentiator: **Resupply-Aware, Weather/Logistics-Conditioned Energy Dispatch**.
+- Core safety and decision functions do **not** depend on continuous external connectivity.
+- The Optimizer recommends; the Deterministic Safety Validator has final authority; the Operator remains responsible for approval.
+- Hardware protections remain separate from the software decision layer.
+- All prototype assumptions (e.g. 3.0 kWh/L diesel conversion) are explicit and configurable.
+

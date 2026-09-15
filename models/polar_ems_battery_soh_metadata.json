@@ -1,0 +1,24 @@
+{
+  "model": "ExtraTreesRegressor",
+  "model_id": "POLAR-EMS-BATTERY-SOH-v1",
+  "purpose": "Battery State of Health estimation",
+  "target": "SOH",
+  "features": [
+    "Voltage",
+    "Current",
+    "Temperature",
+    "ChargeTime",
+    "DischargeTime",
+    "InternalResistance",
+    "AmbientHumidity",
+    "C_Rate"
+  ],
+  "validation": {
+    "method": "4-way batch holdout",
+    "mean_mae": 1.018,
+    "mean_rmse": 1.2853,
+    "mean_r2": 0.9951
+  },
+  "dataset": "battery_dataset.csv",
+  "important_note": "Prototype validation uses public battery data. This is not validation on Antarctic station telemetry."
+}

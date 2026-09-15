@@ -1,0 +1,31 @@
+{
+  "model_name": "POLAR-EMS Solar Generation Forecaster",
+  "algorithm": "XGBoost Regressor",
+  "forecast_horizon": "1 hour ahead",
+  "target": "AC_POWER",
+  "features": [
+    "DC_POWER",
+    "DAILY_YIELD",
+    "hour",
+    "day_of_week",
+    "day_of_year",
+    "month",
+    "lag_1h",
+    "lag_2h",
+    "lag_3h",
+    "lag_24h",
+    "rolling_6h_mean",
+    "rolling_24h_mean"
+  ],
+  "test_metrics": {
+    "MAE": 1237.409455635941,
+    "RMSE": 2382.1211827509337,
+    "R2": 0.8943562320146755
+  },
+  "baseline_metrics": {
+    "MAE": 3722.4878949264426,
+    "RMSE": 5736.529934370583
+  },
+  "baseline_mae_improvement_percent": 66.75853647979714,
+  "training_note": "Prototype short-term solar generation model trained on publicly available solar plant data."
+}

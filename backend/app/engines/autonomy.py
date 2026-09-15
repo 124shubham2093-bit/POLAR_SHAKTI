@@ -65,7 +65,7 @@ def _hourly_profile(hours: int, renew_mult: float, load_mult: float) -> list[dic
 
 def _simulate_scenario(renew_mult: float, load_mult: float, reserve_soc_pct: float) -> tuple[float, float | None, float | None]:
     """Simulate energy depletion for a given uncertainty scenario."""
-    hours_to_project = max(24, int(math.ceil(STATE.resupply_date_days * 24)) + 72)
+    hours_to_project = 720  # 30-day forward operational horizon
     prof = _hourly_profile(hours_to_project, renew_mult, load_mult)
 
     fuel_reserve_l = USABLE_FUEL_L * SAFETY_RULES["min_fuel_reserve_pct"] / 100.0
@@ -155,8 +155,8 @@ def calculate() -> dict[str, Any]:
     resupply_target_days = resupply_info["conservative_days"]
     resupply_expected_days = resupply_info["expected_days"]
 
-    # CQRM Margin: Safe operability vs expected resupply arrival
-    margin = round(conservative_days - resupply_expected_days, 1)
+    # CQRM Margin: Safe operability vs conservative (P90) resupply arrival
+    margin = round(conservative_days - resupply_target_days, 2)
 
     # Failure probability before resupply (logistic CDF of deficit margin)
     # margin = +2.0 d -> ~5% fail

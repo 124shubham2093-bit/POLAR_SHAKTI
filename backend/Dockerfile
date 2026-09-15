@@ -1,14 +1,22 @@
 FROM python:3.12-slim
 
 WORKDIR /app
-COPY requirements.txt .
+
+# Install build dependencies for scientific python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
+COPY backend/app ./app
+COPY models /models
+COPY data /data
 
-# frontend build is copied in by CI or docker-compose build context if present
-COPY --if-exists ../frontend/dist ./static
 ENV POLAR_EMS_DATA=/app/data
+ENV POLAR_EMS_MODELS_DIR=/models
+ENV POLAR_EMS_DATA_DIR=/data
 
 EXPOSE 8321
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8321"]

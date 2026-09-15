@@ -1,0 +1,41 @@
+{
+  "model_name": "POLAR-EMS Weather-Aware Load Forecaster",
+  "algorithm": "XGBoost Regressor",
+  "forecast_horizon": "1 hour ahead",
+  "target": "Power demand",
+  "features": [
+    "temp",
+    "dwpt",
+    "rhum",
+    "wdir",
+    "wspd",
+    "pres",
+    "hour",
+    "day_of_week",
+    "day_of_month",
+    "month",
+    "day_of_year",
+    "is_weekend",
+    "lag_1h",
+    "lag_2h",
+    "lag_3h",
+    "lag_24h",
+    "lag_48h",
+    "lag_168h",
+    "rolling_24h_mean",
+    "rolling_24h_std"
+  ],
+  "test_metrics": {
+    "MAE": 206.40451986378076,
+    "RMSE": 371.1686787816748,
+    "MAPE_percent": 4.269866582660599,
+    "R2": 0.927774398930652
+  },
+  "baseline_metrics": {
+    "MAE": 664.3160543861864,
+    "RMSE": 965.0437406733289,
+    "MAPE_percent": 16.223115706220604
+  },
+  "baseline_mae_improvement_percent": 68.92977092740983,
+  "training_note": "Trained and evaluated on a public weather-aware electricity-demand time series dataset."
+}
