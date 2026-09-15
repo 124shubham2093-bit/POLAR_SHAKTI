@@ -18,6 +18,7 @@ import { AlertsPage } from './pages/alerts'
 import { HistoryPage } from './pages/history'
 import { SystemPage } from './pages/system'
 import { SettingsPage } from './pages/settings'
+import { SandboxPage } from './pages/sandbox'
 
 const NAV_GROUPS = [
   {
@@ -30,26 +31,30 @@ const NAV_GROUPS = [
   {
     section: 'DECISION',
     items: [
-      { id: 'optimization', label: 'Operating Plan' },
-      { id: 'forecast', label: 'Forecast & Uncertainty' },
-      { id: 'autonomy', label: 'Safe Operability & CQRM' },
-      { id: 'scenarios', label: 'Scenarios & Stress Demo' },
-      { id: 'baseline', label: 'Baseline Comparison' },
+      { id: 'forecast', label: 'Forecast' },
+      { id: 'autonomy', label: 'Safe Autonomy' },
+      { id: 'optimization', label: 'Recommended Plan' },
+      { id: 'scenarios', label: 'Scenarios' },
+    ],
+  },
+  {
+    section: 'EXPERIMENT',
+    items: [
+      { id: 'sandbox', label: 'Judge Sandbox' },
     ],
   },
   {
     section: 'CONTROL',
     items: [
-      { id: 'safety', label: 'Safety Validation Gate' },
-      { id: 'resupply', label: 'Resupply Logistics' },
+      { id: 'resupply', label: 'Resupply' },
+      { id: 'safety', label: 'Safety' },
     ],
   },
   {
     section: 'SYSTEM',
     items: [
-      { id: 'alerts', label: 'Alerts' },
-      { id: 'data', label: 'Data Diagnostics' },
-      { id: 'history', label: 'Action Audit' },
+      { id: 'data', label: 'Data & Diagnostics' },
+      { id: 'history', label: 'History' },
       { id: 'system', label: 'System Health' },
       { id: 'settings', label: 'Settings' },
     ],
@@ -59,22 +64,39 @@ const NAV_GROUPS = [
 export type PageId = typeof NAV_GROUPS[number]['items'][number]['id']
 
 export const App: React.FC = () => {
-  const { station, connected, refresh } = useStore()
+  const { station, connected, refresh, simulationPaused, toggleClock } = useStore()
 
-  // LocalStorage persistence for page and state
+  // LocalStorage and URL hash persistence for page and state
   const [page, setPage] = useState<string>(() => {
+    const hash = window.location.hash.replace('#', '')
+    if (hash) return hash
     return localStorage.getItem('polar_ems_page') || 'overview'
   })
 
   useEffect(() => {
     localStorage.setItem('polar_ems_page', page)
+    if (window.location.hash !== `#${page}`) {
+      window.location.hash = page
+    }
   }, [page])
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '')
+      if (hash) setPage(hash)
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
 
   // Collapsible groups state with localStorage persistence
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem('polar_ems_nav_collapsed')
       const initial: Record<string, boolean> = saved ? JSON.parse(saved) : {}
+      initial['OPERATIONS'] = false
+      initial['DECISION'] = false
+      initial['EXPERIMENT'] = false
       const curPage = localStorage.getItem('polar_ems_page') || 'overview'
       const activeGroup = NAV_GROUPS.find(g => g.items.some(item => item.id === curPage))
       if (activeGroup) {
@@ -130,6 +152,7 @@ export const App: React.FC = () => {
     history: <HistoryPage />,
     system: <SystemPage />,
     settings: <SettingsPage />,
+    sandbox: <SandboxPage />,
   }
 
   const isOffline = station && station.connectivity.internet !== 'ONLINE'
@@ -178,8 +201,13 @@ export const App: React.FC = () => {
                   {group.items.map(item => (
                     <a
                       key={item.id}
+                      id={`nav-${item.id}`}
+                      href={`#${item.id}`}
                       className={`nav-item ${page === item.id ? 'active' : ''}`}
-                      onClick={() => setPage(item.id)}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setPage(item.id)
+                      }}
                     >
                       {item.label}
                     </a>
@@ -202,9 +230,9 @@ export const App: React.FC = () => {
             {statusBadge(station ? station.mode : 'OFFLINE')}
 
             {isOffline ? (
-              <span className="badge critical">OFFLINE — LOCAL ENGINE ACTIVE</span>
+              <span className="badge critical">LOCAL MODE — CORE DECISION ENGINES ACTIVE</span>
             ) : (
-              <span className="badge safe">ONLINE (OFFLINE-READY)</span>
+              <span className="badge safe">ONLINE</span>
             )}
 
             <span
@@ -224,6 +252,22 @@ export const App: React.FC = () => {
               ) : null}
             </span>
             {station && !station.mode_auto && <span className="badge caution">MANUAL OVERRIDE</span>}
+
+            {/* Simulation Clock Indicator (Phase 2) */}
+            <button
+              onClick={toggleClock}
+              style={{
+                background: simulationPaused ? 'rgba(251,191,36,0.15)' : 'rgba(34,197,94,0.15)',
+                border: `1px solid ${simulationPaused ? 'var(--caution)' : 'var(--green)'}`,
+                color: simulationPaused ? 'var(--caution)' : 'var(--green)',
+                borderRadius: 4, padding: '2px 8px', cursor: 'pointer',
+                fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+              }}
+              title={simulationPaused ? 'Click to resume simulation' : 'Click to pause simulation'}
+            >
+              {simulationPaused ? '⏸ PAUSED' : '▶ RUNNING'}
+            </button>
+
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>
               {connected ? '3s Live Loop' : 'Connecting…'}
             </span>
@@ -233,19 +277,19 @@ export const App: React.FC = () => {
         {/* OFFLINE LOCAL MODE BANNER (Only when offline) */}
         {isOffline && (
           <div className="offline-banner" style={{ marginBottom: 12 }}>
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <b>SATELLITE LINK SEVERED — 100% AUTONOMOUS LOCAL DISPATCH ACTIVE</b>
-              <span className="badge safe" style={{ background: '#fff' }}>ZERO CLOUD DEPENDENCY</span>
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <b>EXTERNAL CONNECTIVITY LOST — LOCAL DECISION PATH ACTIVE</b>
+              <span className="badge safe" style={{ background: '#fff', color: '#0f172a' }}>LOCAL DISPATCH ACTIVE</span>
             </div>
-            <div className="offline-engines">
-              <span>LOCAL FORECAST: ACTIVE</span>
-              <span>LOCAL LP OPTIMIZATION: ACTIVE</span>
-              <span>SAFETY GATE: ACTIVE</span>
-              <span>CQRM ENGINE: ACTIVE</span>
-              <span>LOCAL DB: ACTIVE</span>
+            <div className="offline-engines" style={{ marginTop: 6, display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: 11 }}>
+              <span>DEMAND FORECAST: ACTIVE</span>
+              <span>RENEWABLE FORECAST: ACTIVE</span>
+              <span>SAFE OPERABILITY: ACTIVE</span>
+              <span>OPTIMIZER: ACTIVE</span>
+              <span>SAFETY VALIDATOR: ACTIVE</span>
             </div>
-            <div className="note" style={{ marginTop: 4 }}>
-              Core survival algorithms continue running on station hardware without interruption.
+            <div className="note" style={{ marginTop: 4, fontSize: 11, color: '#334155' }}>
+              Core local decision path continues without interruption during external communication loss.
             </div>
           </div>
         )}

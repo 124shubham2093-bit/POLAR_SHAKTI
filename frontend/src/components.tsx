@@ -102,7 +102,7 @@ export const statusBadge = (status: string) => {
 /** Persistent Top-Bar Synthetic Label */
 export const SyntheticTopBadge: React.FC = () => (
   <div className="synthetic-top-badge" title="Prototype Evaluation Disclosure">
-    <span style={{ color: '#2563eb' }}>●</span> DEMO / SYNTHETIC STATION DATA
+    <span style={{ color: '#2563eb' }}>●</span> SIMULATION / DEMONSTRATION DATA · NOT CONNECTED TO A REAL ANTARCTIC STATION
   </div>
 )
 

@@ -26,6 +26,9 @@ def _publish(topic: str, value, unit: str) -> None:
 
 def tick() -> None:
     global _tick
+    # Phase 2: respect simulation_paused — do not advance physics while judge experiments
+    if STATE.simulation_paused:
+        return
     _tick += 1
     try:
         balance = plant.sim_step(SIM_HOURS_PER_TICK)
