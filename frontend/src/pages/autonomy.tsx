@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useStore } from '../store'
-import { Page, statusBadge, ResupplyDelaySlider } from '../components'
+import { Page, statusBadge, ResupplyDelaySlider, SemiCircleGauge, ResupplyTimelineBar } from '../components'
 import { runScenarioV1, ScenarioV1Response } from '../api'
 
 /**
@@ -12,21 +12,21 @@ export const AutonomyPage: React.FC = () => {
   const [busy, setBusy] = useState(false)
   const [customScenarioResult, setCustomScenarioResult] = useState<ScenarioV1Response | null>(null)
   const [statusMsg, setStatusMsg] = useState('')
-  const [showCqrmExplain, setShowCqrmExplain] = useState(false)
-  const [showTechnical, setShowTechnical] = useState(false)
   const [sliderBusy, setSliderBusy] = useState(false)
 
   // Trace steps state
   const [isTracing, setIsTracing] = useState(false)
   const [traceSteps, setTraceSteps] = useState<string[]>([])
 
-  if (!station) return <Page title="SAFE AUTONOMY"><p>Loading station state…</p></Page>
+  if (!station) return <Page title="Safe Autonomy"><p>Loading station state…</p></Page>
   const a = station.autonomy
-  if (!a) return <Page title="SAFE AUTONOMY"><p>Autonomy engine calculating…</p></Page>
+  if (!a) return <Page title="Safe Autonomy"><p>Autonomy engine calculating…</p></Page>
 
   const margin = customScenarioResult ? customScenarioResult.cqrm_days : (a.cqrm_margin_days ?? a.autonomy_margin_days ?? 0)
   const safeDays = customScenarioResult ? customScenarioResult.safe_operability_days : a.safe_autonomy_days
   const p90Days = customScenarioResult ? customScenarioResult.resupply_p90_days : (a.resupply_conservative_days ?? (station.resupply.in_days * 1.3))
+  const p10Days = a.optimistic_days ?? (p90Days * 0.72)
+  const p50Days = a.expected_days ?? station.resupply.in_days ?? (p90Days * 0.88)
   const currentRisk = customScenarioResult ? customScenarioResult.risk_level : a.status
   const reserveSoc = customScenarioResult ? customScenarioResult.required_reserve_soc_pct : (station.recommendation?.plan?.reserve_soc_target ?? 30)
   const delayDays = station?.resupply?.delay_days ?? station?.resupply?.model?.slider_delay_days ?? 0
@@ -36,12 +36,12 @@ export const AutonomyPage: React.FC = () => {
     currentRisk === 'CAUTION' ? 'caution' :
     currentRisk === 'CONSERVE' ? 'conserve' : 'critical'
 
-  // Plain-language explanation for judge
+  // Plain-language interpretation
   const plainInterpretation = margin >= 2
-    ? 'The station has a strong modeled margin beyond the conservative resupply estimate.'
+    ? 'The station maintains a strong forward margin beyond the conservative resupply arrival estimate.'
     : margin >= 0
     ? 'The current operating state is projected to remain within defined constraints slightly beyond the conservative resupply estimate.'
-    : 'The modeled safe-operability horizon is shorter than the conservative resupply estimate. Risk mitigation required.'
+    : 'Modeled safe-operability horizon is shorter than conservative resupply arrival timing. Risk mitigation active.'
 
   // Handler: Run Assessment
   const handleRecalculate = async () => {
@@ -52,7 +52,7 @@ export const AutonomyPage: React.FC = () => {
 
     const steps = [
       'Current station state and telemetry loaded',
-      'Demand, solar, and wind forecasts evaluated across uncertainty bands',
+      'Demand, solar, and wind forecasts evaluated across uncertainty horizons',
       'Logistics resupply arrival probability distribution computed (P10 / P50 / P90)',
       '30-day forward physical operability simulated across load/dispatch scenarios',
       'Cumulative Quantile Risk Metric (CQRM = Safe Operability − P90 Resupply) calculated',
@@ -92,14 +92,9 @@ export const AutonomyPage: React.FC = () => {
     }
   }
 
-  // Visual horizon comparison calculations
-  const maxBarDays = Math.max(safeDays || 0, p90Days || 0, 15)
-  const safePct = Math.min(100, Math.max(5, ((safeDays || 0) / maxBarDays) * 100))
-  const resupplyPct = Math.min(100, Math.max(5, ((p90Days || 0) / maxBarDays) * 100))
-
   return (
     <Page
-      title="Safe Operability & CQRM"
+      title="Safe Operability & CQRM Horizon"
       meta={
         <button
           type="button"
@@ -108,16 +103,16 @@ export const AutonomyPage: React.FC = () => {
           disabled={busy}
           style={{ fontSize: 12, padding: '5px 12px', fontWeight: 700 }}
         >
-          {busy && isTracing ? 'Evaluating…' : '⚡ RUN SAFE-OPERABILITY ASSESSMENT'}
+          {busy && isTracing ? 'Evaluating…' : '⚡ RE-EVALUATE SAFE OPERABILITY'}
         </button>
       }
     >
-      {/* 1. QUESTION HEADER */}
+      {/* 1. OPERATIONAL QUESTION HEADER */}
       <div className="card" style={{ borderLeft: '4px solid var(--blue)', marginBottom: 14 }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--blue)', marginBottom: 4 }}>
           CAN WE SAFELY REACH RESUPPLY?
         </div>
-        <p style={{ fontSize: 14, color: '#1e293b', margin: 0, fontWeight: 600, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13.5, color: '#1e293b', margin: 0, fontWeight: 600, lineHeight: 1.5 }}>
           {plainInterpretation}
         </p>
       </div>
@@ -138,15 +133,28 @@ export const AutonomyPage: React.FC = () => {
         </div>
       )}
 
-      {/* 2. DOMINANT HERO */}
-      <div className={`hero-autonomy ${heroClass}`} id="autonomy-hero-card">
-        <div>
-          <div className="hero-label">SAFE OPERABILITY HORIZON</div>
-          <div className="hero-value">{safeDays ? safeDays.toFixed(1) : '—'}</div>
-          <div className="hero-unit">DAYS SAFE OPERABILITY</div>
+      {/* 2. DOMINANT HERO WITH SEMICIRCLE GAUGE */}
+      <div className={`hero-autonomy ${heroClass}`} id="autonomy-hero-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <div>
+            <div className="hero-label">SAFE OPERABILITY HORIZON</div>
+            <div className="hero-value">{safeDays ? safeDays.toFixed(1) : '—'}</div>
+            <div className="hero-unit">DAYS FORWARD HORIZON</div>
+          </div>
+          <SemiCircleGauge
+            value={safeDays}
+            max={Math.max(14, Math.ceil(p90Days * 1.25))}
+            unit="d"
+            label="Safe Horizon"
+            status={heroClass}
+            width={120}
+            height={70}
+            strokeWidth={9}
+          />
         </div>
-        <div className="hero-meta">
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+
+        <div className="hero-meta" style={{ maxWidth: 440 }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
             <span>{statusBadge(currentRisk)}</span>
             <span style={{
               fontFamily: 'var(--mono)',
@@ -154,19 +162,19 @@ export const AutonomyPage: React.FC = () => {
               fontWeight: 800,
               color: margin >= 2 ? 'var(--green)' : margin >= 0 ? 'var(--amber)' : 'var(--red)',
             }}>
-              CQRM: {margin >= 0 ? `+${margin.toFixed(1)}` : margin.toFixed(1)} DAYS
+              CQRM: {margin >= 0 ? `+${margin.toFixed(2)}` : margin.toFixed(2)} DAYS
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 13, color: 'var(--text-dim)' }}>
+          <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 12, color: 'var(--text-dim)' }}>
             <span>
-              P90 Resupply ETA: <b>{p90Days ? `${p90Days.toFixed(1)} d` : '—'}</b>
+              P90 Resupply: <b>{p90Days ? `${p90Days.toFixed(1)} d` : '—'}</b>
             </span>
             <span>
-              Reserve Target: <b>{reserveSoc.toFixed(1)}%</b>
+              Battery Reserve Target: <b>{reserveSoc.toFixed(0)}%</b>
             </span>
           </div>
-          <div style={{ marginTop: 8, fontSize: 12, color: '#334155', lineHeight: 1.4, maxWidth: 540 }}>
-            {plainInterpretation}
+          <div style={{ marginTop: 8, fontSize: 11.5, color: '#334155', lineHeight: 1.4 }}>
+            Risk indicators confirm conservative resupply arrival horizon is {margin >= 0 ? 'fully covered by current reserves' : 'longer than safe operating limits'}.
           </div>
         </div>
       </div>
@@ -177,56 +185,24 @@ export const AutonomyPage: React.FC = () => {
         </div>
       )}
 
-      {/* 3. VISUAL HORIZON COMPARISON */}
+      {/* 3. RESUPPLY TIMELINE & CQRM RELATIONSHIP */}
       <div className="section card" style={{ marginTop: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-dim)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 12 }}>
-          HORIZON COMPARISON: SAFE OPERABILITY VS RESUPPLY WINDOW
-        </div>
-
-        <div style={{ marginBottom: 12 }}>
-          <div className="row" style={{ justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-            <span><b>Safe Operability Horizon</b> (Conservative / P90 Weather)</span>
-            <span style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>{safeDays ? safeDays.toFixed(1) : '—'} days</span>
+        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-dim)', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+            SAFE OPERABILITY VS RESUPPLY TIMELINE
           </div>
-          <div style={{ height: 16, background: '#e2e8f0', borderRadius: 8, overflow: 'hidden', position: 'relative' }}>
-            <div
-              style={{
-                height: '100%',
-                width: `${safePct}%`,
-                background: margin >= 0 ? 'var(--blue)' : 'var(--red)',
-                borderRadius: 8,
-                transition: 'width 0.4s ease',
-              }}
-            />
-          </div>
-        </div>
-
-        <div>
-          <div className="row" style={{ justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-            <span><b>Conservative Resupply Arrival</b> (P90 Logistics Window)</span>
-            <span style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>{p90Days ? p90Days.toFixed(1) : '—'} days</span>
-          </div>
-          <div style={{ height: 16, background: '#e2e8f0', borderRadius: 8, overflow: 'hidden', position: 'relative' }}>
-            <div
-              style={{
-                height: '100%',
-                width: `${resupplyPct}%`,
-                background: 'var(--amber)',
-                borderRadius: 8,
-                transition: 'width 0.4s ease',
-              }}
-            />
-          </div>
-        </div>
-
-        <div style={{ marginTop: 12, padding: '8px 12px', background: margin >= 0 ? '#f0fdf4' : '#fef2f2', borderRadius: 6, border: margin >= 0 ? '1px solid #bbf7d0' : '1px solid #fecaca', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: margin >= 0 ? '#166534' : 'var(--red)' }}>
-            {margin >= 0 ? '✓ RESUPPLY MARGIN POSITIVE (Safe buffer)' : '✕ RESUPPLY DEFICIT (Shortfall risk)'}
-          </span>
-          <span style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 14, color: margin >= 0 ? 'var(--green)' : 'var(--red)' }}>
-            CQRM = {margin >= 0 ? `+${margin.toFixed(1)}` : margin.toFixed(1)} days
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: margin >= 0 ? 'var(--green)' : 'var(--red)' }}>
+            CQRM Margin = Safe ({safeDays.toFixed(1)}d) − P90 ({p90Days.toFixed(1)}d) = {margin >= 0 ? '+' : ''}{margin.toFixed(2)}d
           </span>
         </div>
+
+        <ResupplyTimelineBar
+          p10={p10Days}
+          p50={p50Days}
+          p90={p90Days}
+          safeOperabilityDays={safeDays}
+          cqrmDays={margin}
+        />
       </div>
 
       {/* 4. WHY IS SAFE AUTONOMY LIMITED? (LIMITING FACTOR BREAKDOWN) */}
