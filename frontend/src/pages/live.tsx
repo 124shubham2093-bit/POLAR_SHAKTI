@@ -12,21 +12,6 @@ export const LivePage: React.FC = () => {
 
   return (
     <Page title="Live Physical State" meta={<span className="badge info">{new Date().toLocaleTimeString()}</span>}>
-      {/* OPERATIONAL INTERPRETATION */}
-      <div className="card" style={{ borderLeft: '4px solid var(--blue)', marginBottom: 14 }}>
-        <h3 style={{ margin: '0 0 6px', fontSize: 13, color: 'var(--blue)' }}>
-          PHYSICAL ENERGY STATE & COUPLING
-        </h3>
-        <p style={{ fontSize: 13, color: '#334155', margin: 0, lineHeight: 1.5 }}>
-          {(() => {
-            const renewPct = supply > 0 ? Math.round((bal.solar_kw + bal.wind_kw) / supply * 100) : 0
-            const battState = bal.battery_kw > 2 ? 'charging' : bal.battery_kw < -2 ? 'discharging' : 'idle'
-            const genState = station.generator_running ? `Generator active at ${Math.round(station.generator_output_kw)} kW` : 'Generator on standby'
-            return `Renewables currently meet ${renewPct}% of total demand. Battery storage is ${battState}. ${genState}. Station ambient temperature is ${w.temperature_c.toFixed(1)}°C with ${w.wind_speed_ms.toFixed(0)} m/s wind.`
-          })()}
-        </p>
-      </div>
-
       <div className="grid g4" style={{ marginBottom: 14 }}>
         <Kpi label="Power Demand" value={Math.round(station.loads.total_kw)} unit="kW" />
         <Kpi label="Temperature" value={w.temperature_c.toFixed(1)} unit="°C" sub={w.condition} />

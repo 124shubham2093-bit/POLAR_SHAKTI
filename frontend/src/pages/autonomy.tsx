@@ -36,13 +36,6 @@ export const AutonomyPage: React.FC = () => {
     currentRisk === 'CAUTION' ? 'caution' :
     currentRisk === 'CONSERVE' ? 'conserve' : 'critical'
 
-  // Plain-language interpretation
-  const plainInterpretation = margin >= 2
-    ? 'The station maintains a strong forward margin beyond the conservative resupply arrival estimate.'
-    : margin >= 0
-    ? 'The current operating state is projected to remain within defined constraints slightly beyond the conservative resupply estimate.'
-    : 'Modeled safe-operability horizon is shorter than conservative resupply arrival timing. Risk mitigation active.'
-
   // Handler: Run Assessment
   const handleRecalculate = async () => {
     setBusy(true)
@@ -107,16 +100,6 @@ export const AutonomyPage: React.FC = () => {
         </button>
       }
     >
-      {/* 1. OPERATIONAL QUESTION HEADER */}
-      <div className="card" style={{ borderLeft: '4px solid var(--blue)', marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--blue)', marginBottom: 4 }}>
-          CAN WE SAFELY REACH RESUPPLY?
-        </div>
-        <p style={{ fontSize: 13.5, color: '#1e293b', margin: 0, fontWeight: 600, lineHeight: 1.5 }}>
-          {plainInterpretation}
-        </p>
-      </div>
-
       {/* TRACE DISPLAY */}
       {isTracing && (
         <div className="card" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', marginBottom: 12, padding: '10px 14px' }}>

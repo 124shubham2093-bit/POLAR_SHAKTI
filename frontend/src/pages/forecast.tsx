@@ -59,28 +59,11 @@ export const ForecastPage: React.FC = () => {
   const targets = fc?.targets ?? {}
   const horas = ['1', '6', '24']
 
-  // Plain-English operational interpretation for judge
-  const interpretation = station?.scenario?.storm
-    ? 'Severe blizzard: Solar cutoff and extreme wind chill are driving heating loads higher while reducing net renewable capture. Battery reserves are automatically conserved.'
-    : station?.scenario?.low_renewable
-    ? 'Low renewable interval: Wind and solar output are below seasonal averages over the next 6–24 hours, increasing reliance on stored battery reserves and scheduled generation.'
-    : 'Stable operating conditions: Renewables are meeting 70%+ of projected daytime demand. Prediction intervals remain narrow and manageable.'
-
   return (
     <Page
       title="Forecast & Uncertainty"
       meta={<span className="badge safe">LOCAL ML INFERENCE ACTIVE</span>}
     >
-      {/* 1. QUESTION CARD & OPERATIONAL INTERPRETATION */}
-      <div className="card" style={{ borderLeft: '4px solid var(--blue)', marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--blue)', marginBottom: 4 }}>
-          WHAT IS LIKELY TO HAPPEN NEXT?
-        </div>
-        <p style={{ fontSize: 14, color: '#1e293b', margin: 0, fontWeight: 600, lineHeight: 1.5 }}>
-          {interpretation}
-        </p>
-      </div>
-
       {/* 2. NEXT 6–24 HOURS FORECAST CARDS */}
       <div className="grid g3">
         {(['load_kw', 'solar_kw', 'wind_kw'] as const).map(t => {
